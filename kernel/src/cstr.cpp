@@ -96,6 +96,78 @@ const char* to_string(double value, uint8_t decimalPlaces)
     return doubleTo_StringOutput;
 }
 
+char hexTo_StringOutput[128];
+const char* to_hstring(uint64_t value)
+{
+    uint64_t* valPtr = &value;
+    uint8_t* ptr;
+    uint8_t tmp;
+    uint8_t size = 8 * 2 - 1;
+    for (uint8_t i = 0; i < size; i++){
+        ptr = ((uint8_t*)valPtr + i);
+        tmp = ((*ptr & 0xF0) >> 4);
+        hexTo_StringOutput[size - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
+        tmp = ((*ptr & 0x0F));
+        hexTo_StringOutput[size - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+    }
+    hexTo_StringOutput[size + 1] = 0;
+    return hexTo_StringOutput;
+}
+
+char hexTo_StringOutput32[128];
+const char* to_hstring(uint32_t value)
+{
+    uint32_t* valPtr = &value;
+    uint8_t* ptr;
+    uint8_t tmp;
+    uint8_t size = 4 * 2 - 1;
+    for (uint8_t i = 0; i < size; i++){
+        ptr = ((uint8_t*)valPtr + i);
+        tmp = ((*ptr & 0xF0) >> 4);
+        hexTo_StringOutput32[size - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
+        tmp = ((*ptr & 0x0F));
+        hexTo_StringOutput32[size - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+    }
+    hexTo_StringOutput32[size + 1] = 0;
+    return hexTo_StringOutput32;
+}
+
+char hexTo_StringOutput16[128];
+const char* to_hstring(uint16_t value)
+{
+    uint16_t* valPtr = &value;
+    uint8_t* ptr;
+    uint8_t tmp;
+    uint8_t size = 2 * 2 - 1;
+    for (uint8_t i = 0; i < size; i++){
+        ptr = ((uint8_t*)valPtr + i);
+        tmp = ((*ptr & 0xF0) >> 4);
+        hexTo_StringOutput16[size - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
+        tmp = ((*ptr & 0x0F));
+        hexTo_StringOutput16[size - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+    }
+    hexTo_StringOutput16[size + 1] = 0;
+    return hexTo_StringOutput16;
+}
+
+char hexTo_StringOutput8[128];
+const char* to_hstring(uint8_t value)
+{
+    uint8_t* valPtr = &value;
+    uint8_t* ptr;
+    uint8_t tmp;
+    uint8_t size = 1 * 2 - 1;
+    for (uint8_t i = 0; i < size; i++){
+        ptr = ((uint8_t*)valPtr + i);
+        tmp = ((*ptr & 0xF0) >> 4);
+        hexTo_StringOutput8[size - (i * 2 + 1)] = tmp + (tmp > 9 ? 55 : '0');
+        tmp = ((*ptr & 0x0F));
+        hexTo_StringOutput8[size - (i * 2)] = tmp + (tmp > 9 ? 55 : '0');
+    }
+    hexTo_StringOutput8[size + 1] = 0;
+    return hexTo_StringOutput8;
+}
+
 const char* to_string(double value){
     return to_string(value, 2);
 }

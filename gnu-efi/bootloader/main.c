@@ -111,6 +111,25 @@ int memcmp(const void* aptr, const void* bptr, size_t n){
 	return 0;
 }
 
+typedef struct {
+	Framebuffer* framebuffer;
+	PSF1_FONT* psf1_Font;
+	EFI_MEMORY_DESCRIPTOR* mMap;
+	UINTN mMapSize;
+	UINTN mMapDescSize;
+	void* rsdp;
+} BootInfo;
+
+UINTN strcmp(CHAR8* a, CHAR8* b, UINTN length)
+{
+	for(UINTN i = 0; i < length; i++){
+		if(*a != *b) return 0;
+		a++;
+		b++;
+	}
+	return 1;
+}
+
 EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	
 	InitializeLib(ImageHandle, SystemTable);
@@ -184,8 +203,6 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
 	Print(L"Loaded kernel.\n\r");
 
-	void (*KernelStart)(Framebuffer*, PSF1_FONT*) = ((__attribute__((sysv_abi)) void (*)(Framebuffer*, PSF1_FONT*) ) header.e_entry);
-
 	PSF1_FONT* newFont = LoadPSF1font(NULL, L"zap-light16.psf", ImageHandle, SystemTable);
 	if(newFont == NULL)
 	{
@@ -205,7 +222,46 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	newBuffer->Height,
 	newBuffer->PixelsPerScanLine);
 
-	KernelStart(newBuffer, newFont);
+	EFI_MEMORY_DESCRIPTOR* Map = NULL;
+	UINTN MapSize, MapKey;
+	UINTN DescriptorSize;
+	UINT32 DescriptorVersion;
+	{
+		SystemTable->BootServices->GetMemoryMap(&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+		SystemTable->BootServices->AllocatePool(EfiLoaderData, MapSize, (void**)&Map);
+		SystemTable->BootServices->GetMemoryMap(&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+	}
+
+	EFI_CONFIGURATION_TABLE* configTable = SystemTable->ConfigurationTable;
+	void* rsdp = NULL;
+	EFI_GUID Acpi2TableGuid = ACPI_20_TABLE_GUID;
+
+	for(UINTN index = 0; index < SystemTable->NumberOfTableEntries; index++)
+	{
+		if(CompareGuid(&configTable[index].VendorGuid, &Acpi2TableGuid))
+		{
+			if(strcmp((CHAR8*)"RSD PTR ", (CHAR8*)configTable->VendorTable, 8))
+			{
+				rsdp = (void*)configTable->VendorTable;
+				break;
+			}
+		}
+		configTable++;
+	}
+
+	BootInfo bootInfo;
+	bootInfo.framebuffer = newBuffer;
+	bootInfo.psf1_Font = newFont;
+	bootInfo.mMap = Map;
+	bootInfo.mMapSize = MapSize;
+	bootInfo.mMapDescSize = DescriptorSize;
+	bootInfo.rsdp = rsdp;
+
+	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void (*)(BootInfo*) ) header.e_entry);
+
+	SystemTable->BootServices->ExitBootServices(ImageHandle, MapKey);
+
+	KernelStart(&bootInfo);
 
 	return EFI_SUCCESS; // Exit the UEFI application
 }
