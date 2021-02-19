@@ -20,7 +20,7 @@ void PrepareMemory(BootInfo* bootInfo)
 
 	PageTable* PML4 = (PageTable*)GlobalAllocator.RequestPage();
 	memset(PML4, 0, 0x1000);
-	
+
 	pageTableManager = PageTableManager(PML4);
 
 	for(uint64_t t = 0; t < GetMemorySize(bootInfo->mMap, mMapEntries, bootInfo->mMapDescSize); t += 0x1000){
