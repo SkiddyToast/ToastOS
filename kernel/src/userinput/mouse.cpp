@@ -60,20 +60,21 @@ Point MousePosition;
 Point MousePositionOld;
 void HandlePS2Mouse(uint8_t data)
 {
+    ProcessMousePacket();
+    static bool skip = true;
+    if(skip) { skip = false; return; }
+
     switch(MouseCycle){
         case 0:
-            if(MousePacketReady) break;
-            if(data & 0b00001000 == 0) break;
+            if((data & 0b00001000) == 0) break;
             MousePacket[0] = data;
             MouseCycle++;
             break;
         case 1:
-            if(MousePacketReady) break;
             MousePacket[1] = data;
             MouseCycle++;
             break;
         case 2:
-            if(MousePacketReady) break;
             MousePacket[2] = data;
             MousePacketReady = true;
             MouseCycle = 0;
@@ -138,16 +139,13 @@ void ProcessMousePacket()
     GlobalRenderer->DrawOverlayMouseCursor(MousePointer, MousePosition, 0xffffffff);
 
     if(MousePacket[0] & PS2LeftButton){
-        GlobalRenderer->putChar('a', MousePosition.X, MousePosition.Y);
+        
     }
     if(MousePacket[0] & PS2MiddleButton){
         
     }
     if(MousePacket[0] & PS2RightButton){
-        uint32_t color = GlobalRenderer->Color;
-        GlobalRenderer->Color = 0x0000ff00;
-        GlobalRenderer->putChar('a', MousePosition.X, MousePosition.Y);
-        GlobalRenderer->Color = color;
+        
     }
 
     MousePacketReady = false;

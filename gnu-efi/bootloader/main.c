@@ -200,7 +200,7 @@ EFI_STATUS efi_main (EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
 	Print(L"Loaded kernel.\n\r");
 
-	PSF1_FONT* newFont = LoadPSF1font(NULL, L"zap-light16.psf", ImageHandle, SystemTable);
+	PSF1_FONT* newFont = LoadPSF1font(NULL, L"zap-vga16.psf", ImageHandle, SystemTable);
 	if(newFont == NULL)
 	{
 		Print(L"Font is not valid or can't be found.\n\r");

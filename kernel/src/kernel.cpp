@@ -1,18 +1,16 @@
 #include "kernelUtil.h"
+#include "memory/heap.h"
+#include "scheduling/pit/pit.h"
 
 extern "C" void _start(BootInfo* bootInfo){
 
 	KernelInfo kernelInfo = InitializeKernel(bootInfo);
 	PageTableManager* pageTableManager = kernelInfo.pageTableManager;
 
-	GlobalRenderer->Print("Kernel Initialized Successfully");
-	GlobalRenderer->Next();
-	GlobalRenderer->Print(to_hstring((uint64_t)bootInfo->rsdp));
-	
+	PIT::SetDivisor(65535);
 
-	while(true){
-		ProcessMousePacket();
-	}
+	GlobalRenderer->Print("ToastOS v0.1");
+	GlobalRenderer->Next();
 
     while(true);
 }

@@ -13,6 +13,7 @@
 #include "paging/PageTableManager.h"
 #include "userinput/mouse.h"
 #include "acpi.h"
+#include "pci.h"
 
 struct BootInfo {
 	Framebuffer* framebuffer;
