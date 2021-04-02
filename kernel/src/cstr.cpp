@@ -1,5 +1,7 @@
 #include "cstr.h"
+#include "memory/heap.h"
 
+// Format uint64_t to const char*.
 char uintTo_StringOutput[128];
 const char* to_string(uint64_t value)
 {
@@ -26,6 +28,7 @@ const char* to_string(uint64_t value)
     
 }
 
+// Format int64_t to const char*.
 char intTo_StringOutput[128];
 const char* to_string(int64_t value)
 {
@@ -60,6 +63,7 @@ const char* to_string(int64_t value)
     
 }
 
+// Format double to const char*.
 char doubleTo_StringOutput[128];
 const char* to_string(double value, uint8_t decimalPlaces)
 {
@@ -96,6 +100,7 @@ const char* to_string(double value, uint8_t decimalPlaces)
     return doubleTo_StringOutput;
 }
 
+// Format 64-bit hex to const char*.
 char hexTo_StringOutput[128];
 const char* to_hstring(uint64_t value)
 {
@@ -114,6 +119,7 @@ const char* to_hstring(uint64_t value)
     return hexTo_StringOutput;
 }
 
+// Format 32-bit hex to const char*.
 char hexTo_StringOutput32[128];
 const char* to_hstring(uint32_t value)
 {
@@ -132,6 +138,7 @@ const char* to_hstring(uint32_t value)
     return hexTo_StringOutput32;
 }
 
+// Format 16-bit hex to const char*.
 char hexTo_StringOutput16[128];
 const char* to_hstring(uint16_t value)
 {
@@ -150,6 +157,7 @@ const char* to_hstring(uint16_t value)
     return hexTo_StringOutput16;
 }
 
+// Format 8-bit hex to const char*.
 char hexTo_StringOutput8[128];
 const char* to_hstring(uint8_t value)
 {
@@ -168,6 +176,24 @@ const char* to_hstring(uint8_t value)
     return hexTo_StringOutput8;
 }
 
+// Format double to const char* to 2 decimal places.
 const char* to_string(double value){
     return to_string(value, 2);
+}
+
+// Concatenate two char*s. 
+const char* concat(const char* first, const char* second) {
+    int firstLength = 0, secondLength = 0;
+    const char* f = first, * l = second;
+
+    while (*f++) ++firstLength;
+    while (*l++) ++secondLength;
+
+    char* result = new char[firstLength + secondLength];
+
+    for (int i = 0; i < firstLength; i++) result[i] = first[i];
+    for (int i = firstLength; i < firstLength + secondLength; i++) result[i] = second[i - firstLength];
+
+    result[firstLength+secondLength] = '\0';
+    return result;
 }

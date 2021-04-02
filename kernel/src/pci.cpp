@@ -1,6 +1,10 @@
 #include "pci.h"
+#include "ahci/ahci.h"
+#include "memory/heap.h"
+
 namespace PCI {
 
+    // Sets up Functions
     void EnumerateFunction(uint64_t deviceAddress, uint64_t function)
     {
         uint64_t offset = function << 12;
@@ -12,8 +16,20 @@ namespace PCI {
 
         if(pciDeviceHeader->DeviceID == 0) return;
         if(pciDeviceHeader->DeviceID == 0xFFFF) return;
+
+        switch(pciDeviceHeader->Class){
+            case 0x01:
+                switch(pciDeviceHeader->Subclass){
+                    case 0x06:
+                        switch(pciDeviceHeader->ProgIF){
+                            case 0x01:
+                                new AHCI::AHCIDriver(pciDeviceHeader);
+                        }
+                }
+        }
     }
 
+    // Enumerates through all Functions on specfied device.
     void EnumerateDevice(uint64_t busAddress, uint64_t device)
     {
         uint64_t offset = device << 15;
@@ -31,6 +47,7 @@ namespace PCI {
         }
     }
 
+    // Enumerates through all devices on specified bus.
     void EnumerateBus(uint64_t baseAddress, uint64_t bus)
     {
         uint64_t offset = bus << 20;
@@ -48,6 +65,7 @@ namespace PCI {
         }
     }
 
+    // Enumerates through all busses on PCI.
     void EnumeratePCI(ACPI::MCFGHeader* mcfg)
     {
         int entries = ((mcfg->Header.Length) - sizeof(ACPI::MCFGHeader)) / sizeof(ACPI::DeviceConfig);
