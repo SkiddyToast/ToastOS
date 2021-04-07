@@ -29,6 +29,12 @@ namespace ACPI
         uint32_t CreatorRevision;
     }__attribute__((packed));
 
+    struct XSDT
+    {
+        SDTHeader Header;
+        void* Entries[0];
+    }__attribute__((packed));
+
     struct MCFGHeader
     {
         SDTHeader Header;
@@ -44,5 +50,5 @@ namespace ACPI
         uint32_t Reserved;
     }__attribute__((packed));
 
-    void* FindTable(SDTHeader* sdtHeader, char* signature);
+    void* FindTable(XSDT* xsdt, char* signature);
 }

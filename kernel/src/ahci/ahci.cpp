@@ -1,5 +1,6 @@
 #include "ahci.h"
 #include "../BasicRenderer.h"
+#include "../cstr.h";
 #include "../paging/PageTableManager.h"
 #include "../memory/heap.h"
 #include "../paging/PageFrameAllocator.h"
@@ -36,6 +37,17 @@ namespace AHCI {
         for(int i = 0; i < portCount; i++){
             Port* port = ports[i];
             port->Configure();
+
+            if(port->portType == PortType::SATA) {
+                port->buffer = (uint8_t*)GlobalAllocator.RequestPage();
+                memset(port->buffer, 0, 0x1000);
+
+                port->Read(0, 4, port->buffer);
+                for (int t = 0; t < 1024; t++){
+                    GlobalRenderer->putChar(port->buffer[t]);
+                }
+                GlobalRenderer->Next();
+            }
         }
     }
 
@@ -98,17 +110,17 @@ namespace AHCI {
         void* fisBase = GlobalAllocator.RequestPage();
         hbaPort->fisBaseAddress = (uint32_t)(uint64_t)fisBase;
         hbaPort->fisBaseAddressUpper = (uint32_t)((uint64_t)fisBase >> 32);
-        memset(fisBase, 0 , 256);
+        memset(fisBase, 0, 256);
 
         HBACommandHeader* cmdHeader = (HBACommandHeader*)((uint64_t)hbaPort->commandListBase + ((uint64_t)hbaPort->commandListBaseUpper << 32));
 
-        for(int i = 0; i < 32; i++){
+        for (int i = 0; i < 32; i++){
             cmdHeader[i].prdtLength = 8;
 
             void* cmdTableAddress = GlobalAllocator.RequestPage();
             uint64_t address = (uint64_t)cmdTableAddress + (i << 8);
             cmdHeader[i].commandTableBaseAddress = (uint32_t)(uint64_t)address;
-            cmdHeader[i].commandTableBaseAddress = (uint32_t)((uint64_t)address >> 32);
+            cmdHeader[i].commandTableBaseAddressUpper = (uint32_t)((uint64_t)address >> 32);
             memset(cmdTableAddress, 0, 256);
         }
 
@@ -134,5 +146,67 @@ namespace AHCI {
 
             break;
         }
+    }
+
+    // Read from sector to sector + sectorCount and put the value in buffer.
+    bool Port::Read(uint64_t sector, uint32_t sectorCount, void* buffer) {
+        uint32_t sectorL = (uint32_t) sector;
+        uint32_t sectorH = (uint32_t) (sector >> 32);
+
+        hbaPort->interruptStatus = (uint32_t)-1; // Clear pending interrupt bits
+
+        HBACommandHeader* cmdHeader = (HBACommandHeader*)hbaPort->commandListBase;
+        memset(cmdHeader, 0, sizeof(HBACommandHeader));
+        cmdHeader->commandFISLength = sizeof(FIS_REG_H2D)/ sizeof(uint32_t); //command FIS size;
+        cmdHeader->write = 0; //this is a read
+        cmdHeader->prdtLength = (uint16_t)((sectorCount - 1) >> 4) + 1;
+
+        HBACommandTable* commandTable = (HBACommandTable*)(cmdHeader->commandTableBaseAddress);
+        memset(commandTable, 0, sizeof(HBACommandTable) + (cmdHeader->prdtLength-1)*sizeof(HBAPRDTEntry));
+
+        commandTable->prdtEntry[0].dataBaseAddress = (uint32_t)(uint64_t)buffer;
+        commandTable->prdtEntry[0].dataBaseAddressUpper = (uint32_t)((uint64_t)buffer >> 32);
+        commandTable->prdtEntry[0].byteCount = (sectorCount<<9)-1; // 512 bytes per sector
+        commandTable->prdtEntry[0].interruptOnCompletion = 1;
+
+        FIS_REG_H2D* cmdFIS = (FIS_REG_H2D*)(&commandTable->commandFIS);
+
+        cmdFIS->fisType = FIS_TYPE_REG_H2D;
+        cmdFIS->commandControl = 1; // command
+        cmdFIS->command = ATA_CMD_READ_DMA_EX;
+
+        cmdFIS->lba0 = (uint8_t)sectorL;
+        cmdFIS->lba1 = (uint8_t)(sectorL >> 8);
+        cmdFIS->lba2 = (uint8_t)(sectorL >> 16);
+        cmdFIS->lba3 = (uint8_t)sectorH;
+        cmdFIS->lba4 = (uint8_t)(sectorH >> 8);
+        cmdFIS->lba5 = (uint8_t)(sectorH >> 16);
+
+        cmdFIS->deviceRegister = 1<<6; //LBA mode
+
+        cmdFIS->countLow = sectorCount & 0xFF;
+        cmdFIS->countHigh = (sectorCount >> 8) & 0xFF;
+
+        uint64_t spin = 0;
+
+        while ((hbaPort->taskFileData & (ATA_DEV_BUSY | ATA_DEV_DRQ)) && spin < 1000000){
+            spin ++;
+        }
+        if (spin == 1000000) {
+            return false;
+        }
+
+        hbaPort->commandIssue = 1;
+
+        while (true){
+
+            if((hbaPort->commandIssue == 0)) break;
+            if(hbaPort->interruptStatus & HBA_PxIS_TFES)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -71,9 +71,12 @@ void PrepareInterrupts()
 
 void PrepareACPI(BootInfo* bootInfo)
 {
-	ACPI::SDTHeader* xsdt = (ACPI::SDTHeader*)(bootInfo->rsdp->XSDTAddress);
+	ACPI::XSDT* xsdt = (ACPI::XSDT*)(bootInfo->rsdp->XSDTAddress);
+
+	g_PageTableManager.MapMemory(xsdt, xsdt);
 
 	ACPI::MCFGHeader* mcfg = (ACPI::MCFGHeader*)ACPI::FindTable(xsdt, (char*)"MCFG");
+	g_PageTableManager.MapMemory(mcfg, mcfg);
 
 	PCI::EnumeratePCI(mcfg);
 }
